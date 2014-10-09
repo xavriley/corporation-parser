@@ -1,4 +1,5 @@
 require 'parslet'
+require 'pp'
 
 class CorporationParser < Parslet::Parser
 
@@ -52,4 +53,4 @@ class CorporationParser < Parslet::Parser
 
 end
 
-p CorporationParser.new.parse("SkyTerra Communications, Inc., formerly Mobile Satellite Ventures".downcase.strip)
+pp CorporationParser.new.parse("SkyTerra Communications, Inc., formerly Mobile Satellite Ventures".downcase.strip)
