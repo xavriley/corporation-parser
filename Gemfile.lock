@@ -1,0 +1,17 @@
+GIT
+  remote: git://github.com/kschiess/parslet.git
+  revision: ef9af5affa183ece136e0e5b5959bc789c3dd798
+  specs:
+    parslet (1.7.0)
+      blankslate (~> 2.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    blankslate (2.1.2.4)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  parslet!
