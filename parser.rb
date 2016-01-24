@@ -1,13 +1,14 @@
 require 'parslet'
 require 'pp'
 
-class CorporationParser < Parslet::Parser
+module CorporationRules
+  include Parslet
 
   rule(:whitespace) { match('[\s\r\n]') | str(',') | str('-') | str('(') | str(')') | str(':') | str('\"') | str('/') | str('*') | str('=') | str('>') | str('+') | str('[') | str(']') | str('_') | str('$') }
   rule(:whitespace?) { whitespace.repeat }
 
   rule(:special) { (special_helper >> (whitespace? >> special_helper).repeat).as(:special) }
-  rule(:special_helper) { aand | corporates | initials | number }
+  rule(:special_helper) { aand | initials | number }
 
   # and is a Ruby keyword
   rule(:aand) { str("&") | str("and") }
@@ -17,7 +18,7 @@ class CorporationParser < Parslet::Parser
 
   rule(:initials) { ( match("[a-z]") >> str(".") ).repeat(1).as(:initials) }
 
-  rule(:corporates) { (llc | pllc | llp | lp | incorporated | corporation | limited | company | international | association | foreign).as(:corporates) }
+  rule(:corporates) { (llc | pllc | llp | lp | incorporated | corporation | limited | company | international | association | foreign | plc).as(:corporates) }
   rule(:association) { str("association") | str("assn.") | str("associations") | str("association's") | str("associations'") }
   rule(:international) { str("international") }
   rule(:llc)  { str("llc") | str("lc") | str("lcc") | str("llc.") }
@@ -27,8 +28,9 @@ class CorporationParser < Parslet::Parser
   # Order is dependent in the following. The full stop version needs to be matched first
   rule(:incorporated)  { str("incorporated") | str("inc.") | str("inc") }
   rule(:corporation) { str("corps") | str("corporations") | str("corporation") | str("corp") | str("corp.") }
-  rule(:limited) { str("ltd") | str("ltd.") | str("ltd..") }
+  rule(:limited) { str("limited") | str("ltd") | str("ltd.") | str("ltd..") }
   rule(:company) { str("company") | str("companies") | str("co.") }
+  rule(:plc) { str("plc") | str("public listed company") | str("p.l.c.") | str("plc.") }
   rule(:foreign) { str("ltda.")  }
 
   rule(:simple_fka) { complex_fka.absent? >> formers }
@@ -45,12 +47,19 @@ class CorporationParser < Parslet::Parser
 
   rule(:token) { simple | special }
 
-  rule(:name) { (whitespace? >> token >> (whitespace? >> token).repeat) }
+  rule(:name) { ((whitespace | name).repeat >> corporates.repeat(1)).as(:name) }
 
-  rule(:beings) { (name.as(:company) >> (whitespace? >> splitters).maybe.as(:splitters) >> ((whitespace? >> name).maybe).as(:company_alt) ).as(:beings) }
-
-  root(:beings)
-
+  #rule(:beings) { (name.as(:company) >> (whitespace? >> splitters).maybe.as(:splitters) >> ((whitespace? >> name).maybe).as(:company_alt) ).as(:beings) }
+  rule(:beings) { name.as(:company) }
 end
 
-pp CorporationParser.new.parse("SkyTerra Communications, Inc., formerly Mobile Satellite Ventures".downcase.strip)
+class SubsidiaryParser < Parslet::Parser
+  include CorporationRules
+  rule(:wholly_owned) { (str(' wholly owned ').absent? >> any).repeat >> str(' wholly owned ').as(:wholly_owned) }
+  rule(:ownership_details) { (str(' of ').absent? >> any).repeat.as(:ownership_details) >> str(' of ') }
+  rule(:subsidiaries) { wholly_owned.as(:ownership) >> ownership_details.as(:ownership_details) >> name.as(:company) }
+
+  root(:name)
+end
+
+# pp CorporationParser.new.parse("SkyTerra Communications, Inc., formerly Mobile Satellite Ventures".downcase.strip)
